@@ -10,19 +10,13 @@ Chloe is a modern, friendly AI-powered mental health companion with a beautiful 
 ## 🚀 Features
 
 * **Conversational Mental Health Support:** Empathetic, AI-driven dialogue using local LLMs (via [Ollama](https://ollama.com/)).
-* **Modern Desktop GUI:** Polished, animated chat interface with customizable dark mode.
+* **Modern Desktop GUI:** Polished, animated chat interface with dark mode.
 * **Mood Tracking & Insights:** Visualize, analyze, and sort your conversation history by mood, happiness, and more.
 * **Privacy First:** All your data is stored locally; nothing is ever uploaded to the cloud.
 * **Offline/Online Modes:** Chloe gracefully falls back to basic support if AI models aren’t available.
 * **Import/Export Data:** Manage your chat history and profile easily.
 * **Proactive Check-Ins:** Gentle, customizable reminders if you’re idle for a while.
 * **Gen-Z & Adult Modes:** Chloe adapts her tone and vocabulary based on your age.
-
----
-
-## 🖥️ Screenshots
-
-> *(Add screenshots here for maximum effect! Include chat UI, mood analysis, onboarding, etc.)*
 
 ---
 
@@ -37,7 +31,7 @@ cd chloe-ai
 
 ### 2. **Install Python dependencies**
 
-It’s recommended to use Python 3.9–3.12.
+It’s recommended to use Python 3.8–3.13.
 Create a venv if you like:
 
 ```bash
@@ -120,6 +114,7 @@ That’s it! On first launch, Chloe will onboard you (name, age, preferences) an
 
 * Make sure the Ollama server is running (`ollama serve`).
 * If still stuck, restart both Ollama and Chloe, and check for errors in the terminal.
+* If stuck after both steps, maybe LLM model is too large for your computer, switch to the small models and see if it is still stays stuck.
 
 ---
 
@@ -160,8 +155,4 @@ Chloe loves feedback! 💚
 
 ---
 
-**Made with care by \[Your Name]**
-
----
-
-Let me know if you want any specific badges, customization, or a one-liner tagline at the top!
+**Made with care by Malaz Nakaweh and Husnain Sidhu**
