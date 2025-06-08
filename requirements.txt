@@ -1,0 +1,7 @@
+tk
+psutil
+requests
+chromadb
+ollama
+Pillow
+typing-extensions
