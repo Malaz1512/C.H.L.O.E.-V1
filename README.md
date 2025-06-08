@@ -25,8 +25,10 @@ Chloe is a modern, friendly AI-powered mental health companion with a beautiful 
 ### 1. **Clone the repository**
 
 ```bash
-git clone https://github.com/yourusername/chloe-ai.git
-cd chloe-ai
+git clone [https://github.com/yourusername/chloe-ai.git](https://github.com/Malaz1512/C.H.L.O.E.-V1.git)
+cd C.H.L.O.E.-V1
+pip install -r requirements.txt
+python chloe.py
 ```
 
 ### 2. **Install Python dependencies**
@@ -43,15 +45,6 @@ Install required packages:
 
 ```bash
 pip install -r requirements.txt
-```
-
-#### **`requirements.txt` (create this file with these lines):**
-
-```
-tk
-psutil
-requests
-chromadb
 ```
 
 *You may need to install `tkinter` manually on some Linux distros:*
