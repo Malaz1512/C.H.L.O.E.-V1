@@ -229,7 +229,7 @@ def print_ollama_help():
     pretty_print("   ollama serve")
     pretty_print("3. Try running Chloe again!", "yellow", False)
     pretty_print("If you need help: https://github.com/ollama/ollama/blob/main/docs/index.md\n", "magenta")
-    pretty_print("Falling back to BASIC mode (no LLM features).", "yellow")
+    pretty_print("EXITING...", "yellow")
 
 def check_ollama_full_status():
     # Returns (is_ollama_installed, is_ollama_running)
