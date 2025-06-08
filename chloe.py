@@ -3,11 +3,15 @@ from tkinter import ttk, scrolledtext, messagebox, filedialog
 from tkinter import simpledialog
 import threading
 import subprocess
+import shutil
 import sys
 import re
+import gc
 import os
 import json
 import time
+import tempfile
+import textwrap
 import random
 from datetime import datetime
 import psutil
@@ -675,7 +679,7 @@ class ChloeAssistant:
             )
         else:
             base += (
-                "\nWhen talking to adults, be friendly, supportive, and concise. Use warm, caring language, but little to no slang. Short answers only."
+                "\nWhen talking to adults, be friendly, supportive, and concise. Use warm, caring language, but STRICTLY no slang. Short answers only."
             )
 
         if mood.get("crisis_score", 0) > 0:
@@ -1280,7 +1284,7 @@ class ModernChloeGUI:
         while True:
             try:
                 # Check model status
-                if hasattr(self.chloe, 'current_model') and self.chloe.current_model:
+                if hasattr(self, 'chloe') and hasattr(self.chloe, 'current_model') and self.chloe.current_model:
                     model_text = f"✅ {self.chloe.current_model} ready"
                     self.root.after(0, lambda: self.model_status_label.config(text=model_text,
                                                                              foreground=self.colors['success']))
@@ -1318,7 +1322,6 @@ class ModernChloeGUI:
         ]
         
         # Select based on current mood and time of day
-        import random
         return random.choice(messages)
     
     def on_enter_key(self, event):
@@ -1453,7 +1456,6 @@ class ModernChloeGUI:
             "Thank you for opening up. What thoughts are going through your mind about this?",
         ]
         
-        import random
         return random.choice(responses)
     
     def analyze_mood(self, message: str) -> Dict:
@@ -1741,39 +1743,139 @@ class ModernChloeGUI:
                     raise ValueError("Invalid file format")
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to import: {e}")
-    
+
     def reset_all_data(self):
-        """Reset all user data"""
-        if messagebox.askyesno("Confirm Reset", 
-                              "This will permanently delete your profile and all chat history. "
-                              "Are you sure you want to continue?"):
-            try:
-                # Clear files
-                for filename in ['chloe_profile.json', 'chloe_history.json']:
+        """
+        Force-wipe Chloe’s local state.
+
+        1. Gracefully closes every Chroma handle we know about.
+        2. Spawns a detached “janitor” which keeps retrying the delete
+        (with exponential back–off) until the folder is *really* gone
+        or we hit 30 s.
+        3. Works on Windows / macOS / Linux – no external deps.
+        """
+
+        if not messagebox.askyesno(
+            "Confirm Reset",
+            "Chloe will close and ALL your local data will be PERMANENTLY deleted.\n\n"
+            "Proceed?"):
+            return
+
+        # ------------------------------------------------------------------ #
+        # Step 1 –  try to release file handles held by this process
+        # ------------------------------------------------------------------ #
+        try:
+            # Chroma keeps a global singleton client; destroy it if possible
+            if hasattr(chromadb, "PersistentClient"):
+                try:
+                    _tmp_client = chromadb.PersistentClient(path=CHROMADB_PATH)
+                    _tmp_client.reset()      # closes DuckDB + ann-index
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        gc.collect()
+
+        chroma_dir = os.path.abspath(CHROMADB_PATH)
+        trash_tag  = f".trash_{int(time.time())}"
+        json_files = [
+            os.path.abspath("chloe_profile.json"),
+            os.path.abspath("chloe_history.json"),
+            os.path.abspath("chloe_convo.json"),
+        ]
+        parent_pid = os.getpid()
+
+        # ------------------------------------------------------------------ #
+        # Step 2 –  write the janitor script to a temp file
+        # ------------------------------------------------------------------ #
+        janitor_py = textwrap.dedent(f"""
+            import os, shutil, stat, time, sys, random
+
+            TARGET      = r\"\"\"{chroma_dir}\"\"\"
+            TRASH_ALIAS = TARGET + r\"{trash_tag}\"
+            JSONS       = {json_files!r}
+            PARENT_PID  = {parent_pid}
+
+            def _chmod_and_retry(func, path, _):
+                try:
+                    os.chmod(path, stat.S_IWRITE)
+                    func(path)
+                except Exception:
+                    pass
+
+            # Wait for parent to exit (max 10 s)
+            for _ in range(100):
+                try:
+                    os.kill(PARENT_PID, 0)
+                    time.sleep(0.1)
+                except OSError:
+                    break  # parent is dead
+
+            # 1) Try quick rename (works even if a file is still open)
+            if os.path.exists(TARGET):
+                try:
+                    os.rename(TARGET, TRASH_ALIAS)
+                    TARGET = TRASH_ALIAS
+                except Exception:
+                    pass  # rename failed; we'll just delete in place
+
+            # 2) Robust rm - keep trying up to 30 s
+            deadline = time.time() + 30
+            backoff  = 0.05
+            while os.path.exists(TARGET) and time.time() < deadline:
+                try:
+                    shutil.rmtree(TARGET, onerror=_chmod_and_retry)
+                except Exception:
+                    time.sleep(backoff)
+                    backoff = min(backoff * 2, 2.0)  # expo back-off
+
+            # 3) Wipe JSONs
+            for f in JSONS:
+                try:
+                    os.remove(f)
+                except PermissionError:
                     try:
-                        import os
-                        if os.path.exists(filename):
-                            os.remove(filename)
-                    except:
+                        os.chmod(f, stat.S_IWRITE)
+                        os.remove(f)
+                    except Exception:
                         pass
-                
-                # Reset application state
-                self.profile = {}
-                self.conversation_history = []
-                self.onboarding_state = 'name'
-                
-                # Clear chat display
-                for widget in self.chat_container.winfo_children():
-                    widget.destroy()
-                
-                # Restart onboarding
-                self.greeting_label.config(text="Let's get started!")
-                self.start_onboarding()
-                
-                messagebox.showinfo("Reset Complete", "All data has been cleared.")
-            except Exception as e:
-                messagebox.showerror("Error", f"Failed to reset data: {e}")
-    
+                except FileNotFoundError:
+                    pass
+        """)
+
+        tmp = tempfile.NamedTemporaryFile(delete=False,
+                                        suffix=".py",
+                                        mode="w",
+                                        encoding="utf-8")
+        tmp.write(janitor_py)
+        tmp.close()
+
+        # ------------------------------------------------------------------ #
+        # Step 3 – spawn janitor *detached*
+        # ------------------------------------------------------------------ #
+        popen_kw = dict(stdin=subprocess.DEVNULL,
+                        stdout=subprocess.DEVNULL,
+                        stderr=subprocess.DEVNULL)
+
+        if os.name == "nt":
+            DETACHED_PROCESS      = 0x00000008
+            CREATE_NEW_PROCESS_GP = 0x00000200
+            popen_kw["creationflags"] = DETACHED_PROCESS | CREATE_NEW_PROCESS_GP
+        else:
+            popen_kw["start_new_session"] = True
+
+        subprocess.Popen([sys.executable, tmp.name], **popen_kw)
+
+        # ------------------------------------------------------------------ #
+        # Step 4 – close the GUI and bail out
+        # ------------------------------------------------------------------ #
+        try:
+            self.root.destroy()
+        except Exception:
+            pass
+        os._exit(0)
+
+
     def show_mood_analysis(self):
         """Show detailed mood analysis"""
         if not self.conversation_history:
@@ -2030,7 +2132,7 @@ class ModernChloeGUI:
         status_frame = ttk.LabelFrame(model_window, text=" Current Status ")
         status_frame.pack(fill='x', padx=10, pady=10)
         
-        if hasattr(self.chloe, 'current_model') and self.chloe.current_model:
+        if hasattr(self, 'chloe') and hasattr(self.chloe, 'current_model') and self.chloe.current_model:
             status_text = f"✅ Currently using: {self.chloe.current_model}"
             status_color = self.colors['success']
         else:
@@ -2089,6 +2191,16 @@ def main():
         pretty_print("Falling back to BASIC mode (no LLM features).\n", "yellow")
         sys.exit(0)
 
+    # ————————————————————————
+    # If we just reset, wipe the old DB and JSON right away
+    if os.path.exists('reset_pending'):
+        shutil.rmtree(CHROMADB_PATH, ignore_errors=True)
+        for fn in ('chloe_profile.json', 'chloe_history.json', 'chloe_convo.json'):
+            try: os.remove(fn)
+            except: pass
+        os.remove('reset_pending')
+    # ————————————————————————
+
     if ollama_ok:
         ensure_model_ready("llama3.2")  # Blocks with loading UI
 
@@ -2099,8 +2211,7 @@ def main():
     except Exception as e:
         pretty_print(f"Error starting application: {e}", "red")
         try:
-            import tkinter.messagebox as mb
-            mb.showerror("Startup Error", f"Failed to start Chloe: {e}")
+            messagebox.showerror("Startup Error", f"Failed to start Chloe: {e}")
         except Exception:
             pass
 
