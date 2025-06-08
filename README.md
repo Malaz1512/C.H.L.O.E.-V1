@@ -141,7 +141,7 @@ See [LICENSE](LICENSE) for full details.
 
 ### Questions or Suggestions?
 
-Open an issue or start a discussion on [GitHub](https://github.com/yourusername/chloe-ai/issues).
+Open an issue or start a discussion on [GitHub](https://github.com/Malaz1512/C.H.L.O.E.-V1/issues).
 Chloe loves feedback! 💚
 
 ---
