@@ -384,6 +384,18 @@ class ChloeAssistant:
         self.ollama_ok = ollama_ok
 
     def bubble_sort_history_by_mood(self):
+        """ Bubble Sort the history based on the mood of the messages sent by the user.
+
+        conversation history before: [
+            {'user': 'hi', 'mood': {'happiness_level': 2}},
+            {'user': 'hello', 'mood': {'happiness_level': 9}},
+            {'user': 'meh', 'mood': {'happiness_level': 5}}
+        ]
+        
+        >>>bubble_sort_history_by_mood()
+        >>>[{'user': 'hello', 'mood': {'happiness_level': 9}}, {'user': 'meh', 'mood': {'happiness_level': 5}}, {'user': 'hi', 'mood': {'happiness_level': 2}}]
+        """
+        
         if not self.conversation_history:
             return []
         history_copy = self.conversation_history.copy()
@@ -401,6 +413,22 @@ class ChloeAssistant:
         return history_copy
 
     def linear_search_messages(self, search_term):
+        """
+        Linear Search for messages containing the search term in either the 'user' or 'assistant' fields.
+        
+        conversation history: [
+        {'user': 'hi', 'assistant': 'hello', 'timestamp': '2024-06-08 10:01', 'mood': {'happiness_level': 2}},
+        {'user': 'are you there?', 'assistant': 'yes, I am here!', 'timestamp': '2024-06-08 10:02', 'mood': {'happiness_level': 5}},
+        {'user': 'bye', 'assistant': 'goodbye', 'timestamp': '2024-06-08 10:03', 'mood': {'happiness_level': 9}}
+        ]
+        
+        >>> linear_search_messages('here')
+        >>> [
+            {'index': 1, 'type': 'user', 'content': 'are you there?', 'timestamp': '2024-06-08 10:02', 'mood': {'happiness_level': 5}},
+            {'index': 1, 'type': 'assistant', 'content': 'yes, I am here!', 'timestamp': '2024-06-08 10:02', 'mood': {'happiness_level': 5}}
+        ]
+        """
+
         if not self.conversation_history or not search_term:
             return []
         search_term = search_term.lower()
@@ -682,7 +710,7 @@ class ChloeAssistant:
                 if mood['crisis_score'] > 0 and self.in_crisis_mode:
                     if not self.crisis_resource_shown:
                         crisis_resources = (
-                            "\n\n🆘 If you need immediate help, here are crisis resources:"
+                            "\n\nIf you need immediate help, here are crisis resources:"
                             "\n• US: 988 (Suicide & Crisis Lifeline)"
                             "\n• UK: 116 123 (Samaritans)"
                             "\n• Canada: 1-833-456-4566"
@@ -892,10 +920,10 @@ class ModernChloeGUI:
         # File menu
         file_menu = tk.Menu(menubar, tearoff=0, bg=self.colors['bg_secondary'], 
                             fg=self.colors['text_primary'])
-        file_menu.add_command(label="💾 Export Chat History", command=self.export_chat)
-        file_menu.add_command(label="📁 Import Chat History", command=self.import_chat)
+        file_menu.add_command(label="Export Chat History", command=self.export_chat)
+        file_menu.add_command(label="Import Chat History", command=self.import_chat)
         file_menu.add_separator()
-        file_menu.add_command(label="🔄 Reset All Data", command=self.reset_all_data)
+        file_menu.add_command(label="Reset All Data", command=self.reset_all_data)
         menubar.add_cascade(label="File", menu=file_menu)
 
         # Assuming self.model_manager = self.chloe.model_manager
@@ -915,18 +943,18 @@ class ModernChloeGUI:
         # Analysis menu
         analysis_menu = tk.Menu(menubar, tearoff=0, bg=self.colors['bg_secondary'], 
                                 fg=self.colors['text_primary'])
-        analysis_menu.add_command(label="📊 Mood Analysis", command=self.show_mood_analysis)
-        analysis_menu.add_command(label="🔍 Search Conversations", command=self.search_conversations)
-        analysis_menu.add_command(label="📈 Mental Health Insights", command=self.show_insights)
-        analysis_menu.add_command(label="🌀 Sort by Mood (Bubble Sort)", command=self.show_sorted_history_by_mood)
+        analysis_menu.add_command(label="Mood Analysis", command=self.show_mood_analysis)
+        analysis_menu.add_command(label="Search Conversations (Linear Search)", command=self.search_conversations)
+        analysis_menu.add_command(label="Mental Health Insights", command=self.show_insights)
+        analysis_menu.add_command(label="Sort by Mood (Bubble Sort)", command=self.show_sorted_history_by_mood)
 
         menubar.add_cascade(label="Analysis", menu=analysis_menu)
 
         # Settings menu
         settings_menu = tk.Menu(menubar, tearoff=0, bg=self.colors['bg_secondary'], 
                                 fg=self.colors['text_primary'])
-        settings_menu.add_command(label="⚙️ Preferences", command=self.show_preferences)
-        settings_menu.add_command(label="🤖 Model Settings", command=self.show_model_settings)
+        settings_menu.add_command(label="Preferences", command=self.show_preferences)
+        settings_menu.add_command(label="Model Settings", command=self.show_model_settings)
         menubar.add_cascade(label="Settings", menu=settings_menu)
 
     def set_and_load_model(self, model_name):
@@ -942,10 +970,10 @@ class ModernChloeGUI:
                 self.chloe.current_model = model_name
                 self.profile['model'] = model_name
                 self.save_profile()
-                self.status_var.set(f"✅ Model loaded: {model_name}")
-                self.model_status_label.config(text=f"✅ {model_name} ready", foreground=self.colors['success'])
+                self.status_var.set(f"Model loaded: {model_name}")
+                self.model_status_label.config(text=f"{model_name} ready", foreground=self.colors['success'])
             else:
-                self.status_var.set(f"❌ Failed to load model: {model_name}")
+                self.status_var.set(f"Failed to load model: {model_name}")
 
         def do_load():
             mm = self.chloe.model_manager
@@ -1051,7 +1079,7 @@ class ModernChloeGUI:
         model_frame.pack(side='left', fill='x', expand=True, padx=(0, 10))
         
         self.model_status_label = ttk.Label(model_frame, 
-                                           text="🔄 Checking model status...",
+                                           text="Checking model status...",
                                            background=self.colors['bg_secondary'],
                                            foreground=self.colors['text_secondary'])
         self.model_status_label.pack(padx=10, pady=5)
@@ -1062,7 +1090,7 @@ class ModernChloeGUI:
         connection_frame.pack(side='right')
         
         self.connection_status = ttk.Label(connection_frame,
-                                          text="🟡 Connecting...",
+                                          text="Connecting...",
                                           background=self.colors['bg_secondary'],
                                           foreground=self.colors['warning'])
         self.connection_status.pack(padx=10, pady=5)
@@ -1190,14 +1218,14 @@ class ModernChloeGUI:
         """Begin the onboarding process"""
         if self.onboarding_state == 'name':
             self.add_message("Chloe", 
-                           "👋 Hi there! I'm Chloe, your AI mental health companion. "
+                           "Hi there! I'm Chloe, your AI mental health companion. "
                            "I'm here to listen, support, and help you navigate life's challenges.\n\n"
                            "Let's start by getting to know each other. What should I call you? "
                            "(Just your first name is perfect!)")
         elif self.onboarding_state == 'age':
             name = self.profile.get('name', '')
             self.add_message("Chloe",
-                           f"Nice to meet you, {name}! 😊\n\n"
+                           f"Nice to meet you, {name}!\n\n"
                            f"To provide you with the most appropriate support, "
                            f"could you tell me your age? This helps me tailor our conversations better.")
         elif self.onboarding_state == 'preferences':
@@ -1336,7 +1364,7 @@ class ModernChloeGUI:
                 self.save_profile()
                 self.onboarding_state = 'age'
                 self.greeting_label.config(text=self.get_greeting_text())
-                self.add_message("Chloe", f"Great to meet you, {name}! 😊\n\n"
+                self.add_message("Chloe", f"Great to meet you, {name}!\n\n"
                             f"Now, could you tell me your age? This helps me provide "
                             f"more appropriate support and conversation.")
             else:
@@ -1354,7 +1382,7 @@ class ModernChloeGUI:
                 self.onboarding_state = None
 
                 response = self.chloe.generate_age_joke(age)
-                self.add_message("Chloe", f"Thanks! {response}\n\nNow, to activate Chloe’s smart features, please go to the Model tab at the top, choose your preferred AI model, and click to load it! 😊")
+                self.add_message("Chloe", f"Thanks! {response}\n\nNow, to access smarter or faster versions of Chloe, please go to the Model tab at the top, choose your preferred AI model, and click to load it! Otherwise, you can just continue chatting as is.")
                 self.profile['preferences_set'] = True
                 self.save_profile()
             else:
