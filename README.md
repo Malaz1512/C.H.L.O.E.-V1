@@ -27,8 +27,6 @@ Chloe is a modern, friendly AI-powered mental health companion with a beautiful 
 ```bash
 git clone [https://github.com/yourusername/chloe-ai.git](https://github.com/Malaz1512/C.H.L.O.E.-V1.git)
 cd C.H.L.O.E.-V1
-pip install -r requirements.txt
-python chloe.py
 ```
 
 ### 2. **Install Python dependencies**
