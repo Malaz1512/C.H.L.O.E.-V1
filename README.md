@@ -132,13 +132,6 @@ That’s it! On first launch, Chloe will onboard you (name, age, preferences) an
 
 ---
 
-## 📄 License
-
-MIT License.
-See [LICENSE](LICENSE) for full details.
-
----
-
 ### Questions or Suggestions?
 
 Open an issue or start a discussion on [GitHub](https://github.com/Malaz1512/C.H.L.O.E.-V1/issues).
